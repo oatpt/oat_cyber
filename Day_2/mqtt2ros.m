@@ -1,0 +1,37 @@
+classdef mqtt2ros
+    properties
+        mqttClient
+        ros2Node
+        ros2Pub
+        rosTopic
+        mqttTopic
+    end
+
+    methods
+        function obj = mqtt2ros(mqttTopic,rosTopic)
+            %obj.ros2Node = rosnode('mqtt2rosNode');
+            %disp(obj.ros2Node)
+            obj.ros2Pub = rospublisher(rosTopic, "geometry_msgs/Twist");
+            obj.rosTopic = rosTopic;           
+            obj.mqttClient = mqttclient('tcp://broker.hivemq.com');
+            obj.mqttTopic = mqttTopic;
+            subscribe(obj.mqttClient, mqttTopic, 'Callback', @(topic,msg) obj.mqttMsgHandler(topic,msg)) ;           
+        end
+
+        function mqttMsgHandler(obj, topic, msg)
+            disp('hi')
+            if strcmp(topic, obj.mqttTopic)
+                rosmsg = rosmessage(obj.ros2Pub);
+                js=jsondecode(msg);
+                rosmsg.Linear.X = js.dX;
+                rosmsg.Linear.Y = js.dY;
+                rosmsg.Linear.Z = js.dZ;
+                rosmsg.Linear;
+                send(obj.ros2Pub, rosmsg);
+
+            else
+                disp('Wrong ROS topic')
+            end
+        end
+    end
+end
